@@ -1,0 +1,68 @@
+.instrument-panel {
+  background-color: var(--surface-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.instrument-header {
+  background-color: var(--surface-control);
+  border-bottom: 1px solid var(--border-color);
+  padding: 10px 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.instrument-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+/* Recessed display screen for values */
+.instrument-screen {
+  background-color: var(--surface-recessed);
+  border-top: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-radius: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+[data-theme='dark'] .instrument-screen {
+  border-right-color: rgba(255, 255, 255, 0.05);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.screen-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.screen-value {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.screen-unit {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-left: 4px;
+}

@@ -1,0 +1,129 @@
+.team-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 32px;
+}
+
+.team-header {
+  margin-bottom: 40px;
+}
+
+.team-header h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.team-header p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Tier 1 guarantees Srilaxmi and Om are always together */
+.team-tier-one {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .team-tier-one { flex-direction: row; align-items: stretch; }
+}
+
+/* Tier 2 holds the rest of the team */
+.team-tier-two {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 768px) { .team-tier-two { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .team-tier-two { grid-template-columns: repeat(3, 1fr); } }
+
+/* Individual Card Styles */
+.team-card {
+  background-color: var(--surface-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.team-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+}
+
+/* Srilaxmi (Leader) Custom Styling */
+.team-card.leader {
+  background-color: var(--surface-control);
+  border: 1px solid var(--warning);
+  box-shadow: var(--neon-glow-warning, 0 0 15px rgba(245, 158, 11, 0.15));
+  flex: 1.2; 
+}
+
+/* Om Pandey Custom Styling */
+.team-card.adjacent {
+  border: 1px solid var(--action);
+  box-shadow: var(--neon-glow-action, 0 0 15px rgba(59, 130, 246, 0.15));
+  flex: 1;
+}
+
+.team-role {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--action);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.team-card.leader .team-role { color: var(--warning); }
+
+/* The new Rajdhani font for names! */
+.team-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+.team-card.leader .team-name {
+  font-size: 2.25rem; 
+  color: var(--warning);
+}
+
+.team-details {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  margin-top: auto;
+}
+
+.team-details li {
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.team-details li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  background-color: var(--text-muted);
+  border-radius: 50%;
+}

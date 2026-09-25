@@ -1,0 +1,74 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden; /* Prevents mobile horizontal scrolling */
+}
+
+body {
+  background-color: var(--surface-page);
+  color: var(--text-primary);
+  font-family: 'Source Sans 3', sans-serif;
+  line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* Premium Custom Scrollbars (Hidden on tiny mobile screens for touch friendliness) */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--surface-page); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-control);
+    border-radius: 5px;
+    border: 2px solid var(--surface-page);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+a {
+  color: var(--action);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+.mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.tech-number {
+  font-family: 'Chakra Petch', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* New Responsive Container Utility */
+.responsive-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px; /* 16px on mobile */
+}
+
+@media (min-width: 768px) {
+  .responsive-container {
+    padding: 40px 32px; /* 32px on desktop */
+  }
+}
