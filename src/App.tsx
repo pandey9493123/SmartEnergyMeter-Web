@@ -12,6 +12,7 @@ import TermsOfService from './pages/legal/TermsOfService';
 import LoginPage from './pages/auth/LoginPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
+import EventLogger from './components/layout/EventLogger';
 import OverviewPage from './pages/app/OverviewPage';
 import LiveMonitorPage from './pages/app/LiveMonitorPage';
 import EnergyPage from './pages/app/EnergyPage';
@@ -41,41 +42,42 @@ function App() {
   return (
     <AuthProvider>
       <DeviceProvider>
-      <SimulationProvider>
-        <BrowserRouter>
-          <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <Routes>
-                           {/* PUBLIC ROUTES */}
-              <Route element={<PublicLayout />}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/team" element={<TeamPage />} />
-                <Route path="/docs" element={<DocsPage />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<TermsOfService />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/app/profile" element={<ProfilePage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Route>
+        <SimulationProvider>
+          <EventLogger />
+          <BrowserRouter>
+            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+              <Routes>
+                {/* PUBLIC ROUTES */}
+                <Route element={<PublicLayout />}>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/team" element={<TeamPage />} />
+                  <Route path="/docs" element={<DocsPage />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/app/profile" element={<ProfilePage />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Route>
 
-              {/* PROTECTED AUTHENTICATED ROUTES (APP SHELL) */}
-              <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route index element={<OverviewPage />} />
-                <Route path="monitor" element={<LiveMonitorPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="energy" element={<EnergyPage />} />
-                <Route path="protection" element={<ProtectionPage />} />
-                <Route path="controls" element={<ControlsPage />} />
-                <Route path="events" element={<EventsPage />} />
-                <Route path="diagnostics" element={<DiagnosticsPage />} />
-                <Route path="reports" element={<ReportsPage />} />
-                <Route path="simulation" element={<SimulationPage />} />
-              </Route>
-            </Routes>
-          </div>
-        </BrowserRouter>
-      </SimulationProvider>
+                {/* PROTECTED AUTHENTICATED ROUTES (APP SHELL) */}
+                <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                  <Route index element={<OverviewPage />} />
+                  <Route path="monitor" element={<LiveMonitorPage />} />
+                  <Route path="analytics" element={<AnalyticsPage />} />
+                  <Route path="energy" element={<EnergyPage />} />
+                  <Route path="protection" element={<ProtectionPage />} />
+                  <Route path="controls" element={<ControlsPage />} />
+                  <Route path="events" element={<EventsPage />} />
+                  <Route path="diagnostics" element={<DiagnosticsPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="simulation" element={<SimulationPage />} />
+                </Route>
+              </Routes>
+            </div>
+          </BrowserRouter>
+        </SimulationProvider>
       </DeviceProvider>
     </AuthProvider>
   );
