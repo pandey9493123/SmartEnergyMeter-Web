@@ -30,4 +30,9 @@ export interface MeterLive {
   /** Which device this reading came from + which RTDB path served it. */
   deviceId?: string;
   sourcePath?: string;
+
+  /** Protection thresholds reported by firmware. */
+  thrVoltMax?: number;
+  thrVoltMin?: number;
+  thrCurrMax?: number;
 }
