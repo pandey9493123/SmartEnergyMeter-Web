@@ -215,7 +215,9 @@ export default function AppLayout() {
 
         {isMoreMenuOpen && (
           <div className="mobile-more-sheet">
-            <div className="nav-section-title">System & Logs</div>
+  <div className="nav-section-title">Telemetry</div>
+  <NavLink to="/app/energy" onClick={closeMoreMenu} className="more-sheet-item">Energy & Billing</NavLink>
+  <div className="nav-section-title">System & Logs</div>
             <NavLink to="/app/controls" onClick={closeMoreMenu} className="more-sheet-item">Device Controls</NavLink>
             <NavLink to="/app/analytics" onClick={closeMoreMenu} className="more-sheet-item">Analytics</NavLink>
             <NavLink to="/app/events" onClick={closeMoreMenu} className="more-sheet-item">Event Log</NavLink>
