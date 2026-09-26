@@ -73,6 +73,9 @@ function mapRaw(
     deviceUpdatedAt: extractDeviceTimestamp(raw),
     deviceId,
     sourcePath,
+    thrVoltMax: Number(raw.thrVoltMax) > 0 ? Number(raw.thrVoltMax) : 265,
+    thrVoltMin: Number(raw.thrVoltMin) > 0 ? Number(raw.thrVoltMin) : 170,
+    thrCurrMax: Number(raw.thrCurrMax) > 0 ? Number(raw.thrCurrMax) : 30,
   };
 }
 
