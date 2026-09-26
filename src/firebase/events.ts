@@ -1,4 +1,4 @@
-import { limitToLast, onValue, orderByChild, push, query, ref, remove, serverTimestamp } from 'firebase/database';
+import { get, limitToLast, onValue, orderByChild, push, query, ref, remove, serverTimestamp } from 'firebase/database';
 import { db } from './config';
 
 export type EventType =
@@ -43,6 +43,17 @@ export function subscribeEvents(deviceId: string, cb: (items: LogEventItem[]) =>
     });
     cb(items.reverse()); // newest first
   });
+}
+
+export async function fetchEventsOnce(deviceId: string): Promise<LogEventItem[]> {
+  const q = query(eventsRef(deviceId), orderByChild('at'), limitToLast(200));
+  const snapshot = await get(q);
+  const items: LogEventItem[] = [];
+  snapshot.forEach((child) => {
+    const value = child.val() as Omit<LogEventItem, 'key'>;
+    items.push({ ...value, key: child.key ?? '' });
+  });
+  return items.reverse(); // newest first
 }
 
 export async function clearEvents(deviceId: string): Promise<void> {
