@@ -1,9 +1,14 @@
 .app-shell {
   display: flex;
+  flex-direction: column; /* FIX: stack content above bottom nav on phones */
   height: 100dvh; /* Mobile friendly height */
   width: 100%;
   overflow: hidden;
   background-color: var(--surface-page);
+}
+
+@media (min-width: 768px) {
+  .app-shell { flex-direction: row; } /* Desktop unchanged: sidebar beside content */
 }
 
 .app-sidebar {
@@ -74,11 +79,13 @@
   overflow-x: hidden;
   width: 100%;
   position: relative;
+  min-height: 0; /* FIX: allow proper shrinking/scroll in column layout */
 }
 
 /* MOBILE BOTTOM NAV */
 .app-bottom-nav {
   display: flex;
+  flex-shrink: 0; /* FIX: bar never gets squeezed */
   background-color: var(--surface-primary);
   border-top: 1px solid var(--border-color);
   z-index: 20;
@@ -141,3 +148,48 @@
 }
 
 .more-sheet-item:active { background-color: var(--surface-recessed); }
+
+/* ============ MOBILE-ONLY FIXES (phones < 768px) ============
+   Everything below is gated behind max-width media queries,
+   so tablet/desktop rendering is completely untouched. */
+@media (max-width: 767px) {
+  /* Page roots: comfortable side padding on narrow screens */
+  .app-main > div > div {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Wide inline grids: stack to one column (prevents overflow) */
+  .app-main [style*="minmax(300px"],
+  .app-main [style*="minmax(350px"],
+  .app-main [style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Shared card grids: stack vertically on phones */
+  .responsive-grid,
+  .responsive-grid-large {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Event log table: compact cells so 3 columns fit */
+  .app-main table {
+    font-size: 0.78rem;
+  }
+  .app-main th,
+  .app-main td {
+    padding: 8px !important;
+  }
+
+  /* Bottom nav: stable touch bar height */
+  .app-bottom-nav {
+    min-height: 62px;
+  }
+}
+
+/* Narrow phones: stack login/signup two-column rows */
+@media (max-width: 600px) {
+  .auth-form [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+}
