@@ -75,3 +75,7 @@ export function sendFaultReset(deviceId: string, uid?: string) {
 export function sendEnergyReset(deviceId: string, uid?: string) {
   return sendAndWaitAck(deviceId, 'energyReset', { by: uid ?? 'web' }, 15000);
 }
+
+export function sendThresholdsCommand(deviceId: string, voltMax: number, voltMin: number, currMax: number, uid?: string) {
+  return sendAndWaitAck(deviceId, 'thresholds', { voltMax, voltMin, currMax, by: uid ?? 'web' });
+}
