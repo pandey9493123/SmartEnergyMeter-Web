@@ -1,17 +1,26 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLiveTelemetry } from '../../hooks/useLiveTelemetry';
 import { useDevice } from '../../hooks/useDevice';
 import { useAuth } from '../../hooks/useAuth';
-import { sendFaultReset } from '../../firebase/commands';
+import { sendFaultReset, sendThresholdsCommand } from '../../firebase/commands';
 
 type Result = { ok: boolean; text: string } | null;
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '10px', backgroundColor: 'var(--surface-control)',
+  border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px',
+};
 
 export default function ProtectionPage() {
   const { telemetry, loading } = useLiveTelemetry();
   const { deviceId } = useDevice();
   const { currentUser } = useAuth();
   const [resetting, setResetting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<Result>(null);
+  const vmaxRef = useRef<HTMLInputElement>(null);
+  const vminRef = useRef<HTMLInputElement>(null);
+  const cmaxRef = useRef<HTMLInputElement>(null);
 
   if (loading || !telemetry) return <div style={{ padding: '32px' }}>Loading...</div>;
 
@@ -29,6 +38,31 @@ export default function ProtectionPage() {
       setResult({ ok: false, text: err instanceof Error ? err.message : 'Reset failed.' });
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleSaveThresholds = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const vmax = Number(vmaxRef.current?.value);
+    const vmin = Number(vminRef.current?.value);
+    const cmax = Number(cmaxRef.current?.value);
+    if (!(vmax >= 200 && vmax <= 300)) { setResult({ ok: false, text: 'Max voltage must be 200–300 V.' }); return; }
+    if (!(vmin >= 100 && vmin <= 220)) { setResult({ ok: false, text: 'Min voltage must be 100–220 V.' }); return; }
+    if (!(vmax > vmin)) { setResult({ ok: false, text: 'Max voltage must exceed min voltage.' }); return; }
+    if (!(cmax >= 1 && cmax <= 100)) { setResult({ ok: false, text: 'Max current must be 1–100 A.' }); return; }
+    setSaving(true);
+    setResult(null);
+    try {
+      const ack = await sendThresholdsCommand(deviceId, vmax, vmin, cmax, currentUser?.uid);
+      if (ack.status === 'done') {
+        setResult({ ok: true, text: `Thresholds saved on ${deviceId}: ${vmax}V / ${vmin}V / ${cmax}A.` });
+      } else {
+        setResult({ ok: false, text: `Device refused: ${ack.note || 'invalid values'}.` });
+      }
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof Error ? err.message : 'Save failed.' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -76,24 +110,32 @@ export default function ProtectionPage() {
 
       {/* Threshold Configuration */}
       <div style={{ backgroundColor: 'var(--surface-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)', padding: '24px' }}>
-        <h3 style={{ fontSize: '1rem', marginBottom: '24px', color: 'var(--text-primary)' }}>ESP32 Local Protection Thresholds</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: '8px', color: 'var(--text-primary)' }}>ESP32 Local Protection Thresholds</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+          Live values from {deviceId}. Saved to ESP32 memory — they survive reboots.
+        </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Max Voltage (V)</label>
-            <input type="number" defaultValue="265" disabled className="mono" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--surface-control)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }} />
+        <form onSubmit={handleSaveThresholds}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Max Voltage (200–300 V)</label>
+              <input ref={vmaxRef} type="number" step="1" defaultValue={telemetry.thrVoltMax ?? 265} className="mono" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Min Voltage (100–220 V)</label>
+              <input ref={vminRef} type="number" step="1" defaultValue={telemetry.thrVoltMin ?? 170} className="mono" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Max Current (1–100 A)</label>
+              <input ref={cmaxRef} type="number" step="1" defaultValue={telemetry.thrCurrMax ?? 30} className="mono" style={inputStyle} />
+            </div>
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Min Voltage (V)</label>
-            <input type="number" defaultValue="170" disabled className="mono" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--surface-control)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }} />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Max Current (A)</label>
-            <input type="number" defaultValue="30" disabled className="mono" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--surface-control)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }} />
-          </div>
-        </div>
+          <button type="submit" disabled={saving} style={{ backgroundColor: 'var(--action)', color: '#fff', padding: '12px 24px', borderRadius: '4px', fontWeight: 700, marginTop: '16px', opacity: saving ? 0.7 : 1 }}>
+            {saving ? 'WAITING FOR DEVICE...' : 'SAVE THRESHOLDS TO DEVICE'}
+          </button>
+        </form>
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '16px' }}>
-          * Thresholds are firmware constants (VOLT_MAX / VOLT_MIN / CURR_MAX in the ESP32 sketch). Fault reset above is fully functional.
+          * Widening thresholds reduces protection. The ESP32 rejects unsafe values automatically.
         </p>
       </div>
     </div>
