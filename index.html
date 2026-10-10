@@ -1,18 +1,830 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Energy Meter</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Energy Meter Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0B132B 0%, #1C2541 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+        
+        .header p {
+            font-size: 1em;
+            color: #b0b0b0;
+        }
+        
+        .gauges-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .gauge {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .gauge:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.2);
+        }
+        
+        .gauge canvas {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+        }
+        
+        .gauge p {
+            font-size: 0.9em;
+            color: #b0b0b0;
+            margin-top: 10px;
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-box h3 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-row span:first-child {
+            color: #b0b0b0;
+        }
+        
+        .info-row span:last-child {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chart-container h3 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .chart-container canvas {
+            max-height: 300px;
+        }
+        
+        .controls-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .control-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-box h4 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #b0b0b0;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        
+        .button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s ease;
+            width: 100%;
+        }
+        
+        .button:hover {
+            background: #45a049;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⚡ Smart Energy Meter</h1>
+            <p>Real-Time Energy Monitoring & Analytics</p>
+        </div>
+        
+        <!-- Main Gauges -->
+        <div class="gauges-container">
+            <div class="gauge">
+                <canvas id="voltageGauge"></canvas>
+                <p>Voltage (V)</p>
+            </div>
+            
+            <div class="gauge">
+                <canvas id="currentGauge"></canvas>
+                <p>Current (A)</p>
+            </div>
+            
+            <div class="gauge">
+                <canvas id="powerGauge"></canvas>
+                <p>Power (W)</p>
+            </div>
+            
+            <div class="gauge">
+                <canvas id="energyGauge"></canvas>
+                <p>Energy (kWh)</p>
+            </div>
+            
+            <!-- FEATURE #2: Hourly Cost Gauge -->
+            <div class="gauge">
+                <canvas id="hourlyCostGauge"></canvas>
+                <p>Hourly Cost (₹)</p>
+            </div>
+            
+            <div class="gauge">
+                <canvas id="powerFactorGauge"></canvas>
+                <p>Power Factor</p>
+            </div>
+        </div>
+        
+        <!-- FEATURE #1: Clock & Uptime Display -->
+        <div class="info-box">
+            <h3>🕐 System Time & Status</h3>
+            <div class="info-row">
+                <span>Current Time:</span>
+                <span id="currentTime">--:--:--</span>
+            </div>
+            <div class="info-row">
+                <span>System Uptime:</span>
+                <span id="systemUptime">--D --H --M</span>
+            </div>
+            <div class="info-row">
+                <span>Device Status:</span>
+                <span id="deviceStatus">●Online</span>
+            </div>
+        </div>
+        
+        <!-- Current Billing Info -->
+        <div class="info-box">
+            <h3>💰 Billing Information</h3>
+            <div class="info-row">
+                <span>Total Energy Consumed:</span>
+                <span id="totalEnergy">0.00 kWh</span>
+            </div>
+            <div class="info-row">
+                <span>Total Bill (Current Month):</span>
+                <span id="totalBill">₹0.00</span>
+            </div>
+            <div class="info-row">
+                <span>Tariff Rate:</span>
+                <span id="tariffRate">₹7.50/kWh</span>
+            </div>
+            <div class="info-row">
+                <span>Budget Limit:</span>
+                <span id="budgetLimit">₹500.00</span>
+            </div>
+        </div>
+        
+        <!-- FEATURE #2: Hourly Cost Breakdown -->
+        <div class="info-box">
+            <h3>⏰ This Hour's Consumption</h3>
+            <div class="info-row">
+                <span>Hourly Energy:</span>
+                <span id="hourlyEnergy">0.00 kWh</span>
+            </div>
+            <div class="info-row">
+                <span>Hourly Cost:</span>
+                <span id="hourlyCost">₹0.00</span>
+            </div>
+            <div class="info-row">
+                <span>Current Hour:</span>
+                <span id="currentHour">00:00</span>
+            </div>
+        </div>
+        
+        <!-- Budget Progress -->
+        <div class="info-box">
+            <h3>📊 Budget Status</h3>
+            <div style="width: 100%; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; height: 30px;">
+                <div id="budgetBar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                    <span id="budgetPercent">0%</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hourly Cost Chart (FEATURE #2) -->
+        <div class="chart-container">
+            <h3>💰 Hourly Cost Breakdown (Last 24 Hours)</h3>
+            <canvas id="hourlyCostChart"></canvas>
+        </div>
+        
+        <!-- Historical Energy Chart -->
+        <div class="chart-container">
+            <h3>📈 Energy Consumption (Last 7 Days)</h3>
+            <canvas id="energyChart"></canvas>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls-container">
+            <!-- Relay Control -->
+            <div class="control-box">
+                <h4>🔌 Relay Control</h4>
+                <div style="margin-top: 15px;">
+                    <label>Load Status:</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="relayToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <p id="relayStatus" style="margin-top: 10px; color: #4CAF50;">● Load: CLOSED</p>
+                </div>
+            </div>
+            
+            <!-- Tariff & Budget Settings -->
+            <div class="control-box">
+                <h4>⚙️ Billing Settings</h4>
+                <div class="input-group">
+                    <label>Tariff Rate (₹/kWh):</label>
+                    <input type="number" id="tariffInput" value="7.5" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>Monthly Budget (₹):</label>
+                    <input type="number" id="budgetInput" value="500" step="10">
+                </div>
+                <button class="button" onclick="saveBillingSettings()">Save Settings</button>
+            </div>
+            
+            <!-- Protection Thresholds -->
+            <div class="control-box">
+                <h4>🛡️ Protection Thresholds</h4>
+                <div class="input-group">
+                    <label>Max Voltage (V):</label>
+                    <input type="number" id="voltMaxInput" value="265" step="5">
+                </div>
+                <div class="input-group">
+                    <label>Min Voltage (V):</label>
+                    <input type="number" id="voltMinInput" value="170" step="5">
+                </div>
+                <div class="input-group">
+                    <label>Max Current (A):</label>
+                    <input type="number" id="currMaxInput" value="30" step="1">
+                </div>
+                <button class="button" onclick="saveThresholds()">Update Thresholds</button>
+            </div>
+        </div>
+        
+        <!-- Fault Reset -->
+        <div class="info-box">
+            <h3>⚠️ System Faults</h3>
+            <div class="info-row">
+                <span>Current Fault Status:</span>
+                <span id="faultStatus" style="color: #4CAF50;">✓ No Active Faults</span>
+            </div>
+            <div class="info-row">
+                <span>Last Fault:</span>
+                <span id="lastFault">None</span>
+            </div>
+            <button class="button" onclick="resetFault()" style="margin-top: 15px; background: #ff9800;">Reset Fault</button>
+        </div>
+    </div>
     
-    <!-- New Google Fonts: Rajdhani, Chakra Petch, Source Sans 3, IBM Plex Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    <!-- JavaScript Code -->
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCm4144uYkh7f2Kx8hxlqqMUjYs4sudmDA",
+  authDomain: "smartenergymeter-dd01b.firebaseapp.com",
+  databaseURL: "https://smartenergymeter-dd01b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "smartenergymeter-dd01b",
+  storageBucket: "smartenergymeter-dd01b.firebasestorage.app",
+  messagingSenderId: "299635627523",
+  appId: "1:299635627523:web:fd8375e25803015e0de036"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        const DEVICE_ID = "device001";
+        const dbPath = `SmartEnergyMeter/Devices/${DEVICE_ID}`;
+        
+        // ==========================================
+        // FEATURE #1: Clock & Time Display
+        // ==========================================
+        function updateClockDisplay() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            document.getElementById('currentTime').textContent = 
+                `${hours}:${minutes}:${seconds}`;
+        }
+        
+        // Update clock every second
+        setInterval(updateClockDisplay, 1000);
+        updateClockDisplay();
+        
+        // ==========================================
+        // Firebase Listeners - Live Data
+        // ==========================================
+        
+        // Voltage
+        database.ref(`${dbPath}/Live/voltage`).on('value', (snapshot) => {
+            const voltage = snapshot.val() || 0;
+            document.getElementById('voltage').textContent = voltage.toFixed(1);
+            updateVoltageGauge(voltage);
+        });
+        
+        // Current
+        database.ref(`${dbPath}/Live/current`).on('value', (snapshot) => {
+            const current = snapshot.val() || 0;
+            updateCurrentGauge(current);
+        });
+        
+        // Power
+        database.ref(`${dbPath}/Live/power`).on('value', (snapshot) => {
+            const power = snapshot.val() || 0;
+            updatePowerGauge(power);
+        });
+        
+        // Energy
+        database.ref(`${dbPath}/Live/energy`).on('value', (snapshot) => {
+            const energy = snapshot.val() || 0;
+            document.getElementById('totalEnergy').textContent = 
+                energy.toFixed(2) + ' kWh';
+            updateEnergyGauge(energy);
+        });
+        
+        // Bill
+        database.ref(`${dbPath}/Live/bill`).on('value', (snapshot) => {
+            const bill = snapshot.val() || 0;
+            document.getElementById('totalBill').textContent = 
+                '₹' + bill.toFixed(2);
+        });
+        
+        // Tariff
+        database.ref(`${dbPath}/Live/tariff`).on('value', (snapshot) => {
+            const tariff = snapshot.val() || 7.5;
+            document.getElementById('tariffRate').textContent = 
+                '₹' + tariff.toFixed(2) + '/kWh';
+            document.getElementById('tariffInput').value = tariff;
+        });
+        
+        // Budget
+        database.ref(`${dbPath}/Live/budgetLimit`).on('value', (snapshot) => {
+            const budget = snapshot.val() || 500;
+            document.getElementById('budgetLimit').textContent = 
+                '₹' + budget.toFixed(2);
+            document.getElementById('budgetInput').value = budget;
+        });
+        
+        // Power Factor
+        database.ref(`${dbPath}/Live/powerFactor`).on('value', (snapshot) => {
+            const pf = snapshot.val() || 0;
+            updatePowerFactorGauge(pf);
+        });
+        
+        // Budget Progress
+        database.ref(`${dbPath}/Live`).on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            const bill = data.bill || 0;
+            const budget = data.budgetLimit || 500;
+            const percent = Math.min((bill / budget) * 100, 100);
+            
+            document.getElementById('budgetBar').style.width = percent + '%';
+            document.getElementById('budgetPercent').textContent = 
+                Math.round(percent) + '%';
+        });
+        
+        // Relay Status
+        database.ref(`${dbPath}/Live/relayState`).on('value', (snapshot) => {
+            const relayState = snapshot.val();
+            document.getElementById('relayToggle').checked = relayState;
+            document.getElementById('relayStatus').textContent = 
+                relayState ? '● Load: CLOSED' : '● Load: OPEN';
+        });
+        
+        // Fault Status
+        database.ref(`${dbPath}/Live/faultActive`).on('value', (snapshot) => {
+            const faultActive = snapshot.val();
+            if (faultActive) {
+                document.getElementById('faultStatus').textContent = 
+                    '● Active Fault';
+                document.getElementById('faultStatus').style.color = '#ff4444';
+            } else {
+                document.getElementById('faultStatus').textContent = 
+                    '✓ No Active Faults';
+                document.getElementById('faultStatus').style.color = '#4CAF50';
+            }
+        });
+        
+        // Last Fault
+        database.ref(`${dbPath}/Live/lastFault`).on('value', (snapshot) => {
+            const lastFault = snapshot.val() || 'None';
+            document.getElementById('lastFault').textContent = lastFault;
+        });
+        
+        // ==========================================
+        // FEATURE #1: System Uptime
+        // ==========================================
+        database.ref(`${dbPath}/Live`).on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            const updatedAt = data.updatedAt || 0;
+            
+            // If device was just updated, assume recent boot
+            const timeSinceUpdate = Date.now() - updatedAt;
+            if (timeSinceUpdate < 600000) {  // Less than 10 minutes
+                const days = Math.floor(timeSinceUpdate / (24 * 3600 * 1000));
+                const hours = Math.floor((timeSinceUpdate % (24 * 3600 * 1000)) / (3600 * 1000));
+                const mins = Math.floor((timeSinceUpdate % (3600 * 1000)) / (60 * 1000));
+                
+                document.getElementById('systemUptime').textContent = 
+                    `${days}D ${hours}H ${mins}M`;
+            }
+        });
+        
+        // ==========================================
+        // FEATURE #2: Hourly Cost Tracking
+        // ==========================================
+        
+        // Hourly Energy
+        database.ref(`${dbPath}/Live/hourlyEnergy`).on('value', (snapshot) => {
+            const hourlyEnergy = snapshot.val() || 0;
+            document.getElementById('hourlyEnergy').textContent = 
+                hourlyEnergy.toFixed(3) + ' kWh';
+        });
+        
+        // Hourly Cost
+        database.ref(`${dbPath}/Live/hourlyCost`).on('value', (snapshot) => {
+            const hourlyCost = snapshot.val() || 0;
+            document.getElementById('hourlyCost').textContent = 
+                '₹' + hourlyCost.toFixed(2);
+            updateHourlyCostGauge(hourlyCost);
+        });
+        
+        // Current Hour
+        database.ref(`${dbPath}/Live/currentHour`).on('value', (snapshot) => {
+            const hour = snapshot.val() || 0;
+            document.getElementById('currentHour').textContent = 
+                String(hour).padStart(2, '0') + ':00';
+        });
+        
+        // ==========================================
+        // GAUGE DRAWING FUNCTIONS
+        // ==========================================
+        
+        let voltageGaugeChart = null;
+        function updateVoltageGauge(value) {
+            const canvas = document.getElementById('voltageGauge');
+            const ctx = canvas.getContext('2d');
+            
+            // Draw simple gauge (can be enhanced with Chart.js)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#4CAF50';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(value.toFixed(1) + ' V', canvas.width/2, canvas.height/2 + 10);
+        }
+        
+        function updateCurrentGauge(value) {
+            const canvas = document.getElementById('currentGauge');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#2196F3';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(value.toFixed(2) + ' A', canvas.width/2, canvas.height/2 + 10);
+        }
+        
+        function updatePowerGauge(value) {
+            const canvas = document.getElementById('powerGauge');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#FF9800';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.round(value) + ' W', canvas.width/2, canvas.height/2 + 10);
+        }
+        
+        function updateEnergyGauge(value) {
+            const canvas = document.getElementById('energyGauge');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#9C27B0';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(value.toFixed(2) + ' kWh', canvas.width/2, canvas.height/2 + 10);
+        }
+        
+        // FEATURE #2: Hourly Cost Gauge
+        function updateHourlyCostGauge(value) {
+            const canvas = document.getElementById('hourlyCostGauge');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#4CAF50';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('₹' + value.toFixed(2), canvas.width/2, canvas.height/2 + 10);
+        }
+        
+        function updatePowerFactorGauge(value) {
+            const canvas = document.getElementById('powerFactorGauge');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00BCD4';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(value.toFixed(2), canvas.width/2, canvas.height/2 + 10);
+        }
+        
+        // ==========================================
+        // HOURLY COST CHART (FEATURE #2)
+        // ==========================================
+        
+        let hourlyCostChart = null;
+        
+        function initHourlyCostChart() {
+            const today = new Date();
+            const yearMonthDay = 
+                today.getFullYear().toString() +
+                String(today.getMonth() + 1).padStart(2, '0') +
+                String(today.getDate()).padStart(2, '0');
+            
+            database.ref(`${dbPath}/History/${yearMonthDay}`).on('value', (snapshot) => {
+                const historyData = snapshot.val() || {};
+                
+                const labels = [];
+                const costs = [];
+                
+                for (let hour = 0; hour < 24; hour++) {
+                    const hourKey = String(hour).padStart(2, '0');
+                    const hourData = historyData[hourKey] || {};
+                    
+                    labels.push(hour + ':00');
+                    costs.push(hourData.cost || 0);
+                }
+                
+                updateHourlyCostChart(labels, costs);
+            });
+        }
+        
+        function updateHourlyCostChart(labels, costs) {
+            const canvas = document.getElementById('hourlyCostChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            if (hourlyCostChart) {
+                hourlyCostChart.destroy();
+            }
+            
+            hourlyCostChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hourly Cost (₹)',
+                        data: costs,
+                        backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                        borderColor: 'rgba(76, 175, 80, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#ffffff',
+                                callback: function(value) {
+                                    return '₹' + value.toFixed(0);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize hourly cost chart on page load
+        window.addEventListener('DOMContentLoaded', initHourlyCostChart);
+        
+        // ==========================================
+        // COMMAND FUNCTIONS
+        // ==========================================
+        
+        function saveBillingSettings() {
+            const tariff = parseFloat(document.getElementById('tariffInput').value);
+            const budget = parseFloat(document.getElementById('budgetInput').value);
+            
+            const cmdId = Date.now().toString();
+            const command = {
+                id: cmdId,
+                tariff: tariff,
+                budgetLimit: budget
+            };
+            
+            database.ref(`${dbPath}/Commands/config`).set(command);
+            alert('Billing settings updated!');
+        }
+        
+        function saveThresholds() {
+            const voltMax = parseFloat(document.getElementById('voltMaxInput').value);
+            const voltMin = parseFloat(document.getElementById('voltMinInput').value);
+            const currMax = parseFloat(document.getElementById('currMaxInput').value);
+            
+            const cmdId = Date.now().toString();
+            const command = {
+                id: cmdId,
+                voltMax: voltMax,
+                voltMin: voltMin,
+                currMax: currMax
+            };
+            
+            database.ref(`${dbPath}/Commands/thresholds`).set(command);
+            alert('Protection thresholds updated!');
+        }
+        
+        function resetFault() {
+            const cmdId = Date.now().toString();
+            const command = {
+                id: cmdId
+            };
+            
+            database.ref(`${dbPath}/Commands/faultReset`).set(command);
+            alert('Fault reset command sent!');
+        }
+        
+        // Relay toggle
+        document.getElementById('relayToggle').addEventListener('change', function() {
+            const action = this.checked ? 'close' : 'open';
+            const cmdId = Date.now().toString();
+            
+            const command = {
+                id: cmdId,
+                action: action
+            };
+            
+            database.ref(`${dbPath}/Commands/relay`).set(command);
+        });
+    </script>
+</body>
 </html>
