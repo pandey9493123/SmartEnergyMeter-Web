@@ -59,6 +59,13 @@ export default function OverviewPage() {
   const power = formatPower(telemetry.power);
   const pfStatus = getPfClass(telemetry.powerFactor);
   const systemSafe = !telemetry.faultActive;
+  const integritySafe = !telemetry.anomalyActive && !telemetry.tamperActive;
+  const billingCycleReported =
+    telemetry.billingMonth !== null ||
+    telemetry.billingStartEnergy !== null ||
+    telemetry.billingEnergy !== null ||
+    telemetry.billingBill !== null ||
+    telemetry.monthlyArchivedAt !== null;
 
   return (
     <div className="page-container">
@@ -192,6 +199,62 @@ export default function OverviewPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* Firmware integrity and monthly billing status */}
+      <div className="responsive-grid" aria-label="Device integrity and billing cycle status">
+        <div style={{ backgroundColor: 'var(--surface-primary)', padding: '24px', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px', flexWrap: 'wrap' }}>
+            <div style={{ color: 'var(--action)', fontWeight: 700 }}>Device Integrity</div>
+            <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 700, color: integritySafe ? 'var(--normal)' : 'var(--fault)' }}>
+              {integritySafe ? 'ALL CLEAR' : 'ATTENTION REQUIRED'}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
+            <div style={{ padding: '14px', borderRadius: '4px', border: `1px solid ${telemetry.anomalyActive ? 'var(--fault)' : 'var(--border-color)'}`, backgroundColor: telemetry.anomalyActive ? 'rgba(239,68,68,0.08)' : 'var(--surface-recessed)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', letterSpacing: '1px', marginBottom: '6px' }}>ANOMALY</div>
+              <div style={{ fontWeight: 700, color: telemetry.anomalyActive ? 'var(--fault)' : 'var(--normal)' }}>{telemetry.anomalyActive ? 'ACTIVE' : 'CLEAR'}</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px' }}>{telemetry.anomalyReason || 'No anomaly reported by firmware.'}</div>
+            </div>
+            <div style={{ padding: '14px', borderRadius: '4px', border: `1px solid ${telemetry.tamperActive ? 'var(--fault)' : 'var(--border-color)'}`, backgroundColor: telemetry.tamperActive ? 'rgba(239,68,68,0.08)' : 'var(--surface-recessed)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', letterSpacing: '1px', marginBottom: '6px' }}>TAMPER</div>
+              <div style={{ fontWeight: 700, color: telemetry.tamperActive ? 'var(--fault)' : 'var(--normal)' }}>{telemetry.tamperActive ? 'ACTIVE' : 'CLEAR'}</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px' }}>{telemetry.tamperReason || 'No tamper event reported by firmware.'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: 'var(--surface-primary)', padding: '24px', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px', flexWrap: 'wrap' }}>
+            <div style={{ color: 'var(--action)', fontWeight: 700 }}>Billing Cycle Status</div>
+            <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 700, color: billingCycleReported ? 'var(--normal)' : 'var(--text-muted)' }}>
+              {billingCycleReported ? 'FIRMWARE REPORTED' : 'NOT REPORTED'}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
+            <div style={{ backgroundColor: 'var(--surface-recessed)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>MONTH</div>
+              <div className="mono" style={{ fontWeight: 700 }}>{telemetry.billingMonth || '—'}</div>
+            </div>
+            <div style={{ backgroundColor: 'var(--surface-recessed)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>CURRENT BILL</div>
+              <div className="mono" style={{ fontWeight: 700, color: telemetry.billingBill === null ? 'var(--text-muted)' : 'var(--warning)' }}>{telemetry.billingBill === null ? '—' : `₹${telemetry.billingBill.toFixed(2)}`}</div>
+            </div>
+            <div style={{ backgroundColor: 'var(--surface-recessed)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>START ENERGY</div>
+              <div className="mono" style={{ fontWeight: 700 }}>{telemetry.billingStartEnergy === null ? '—' : `${telemetry.billingStartEnergy.toFixed(3)} kWh`}</div>
+            </div>
+            <div style={{ backgroundColor: 'var(--surface-recessed)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>CURRENT ENERGY</div>
+              <div className="mono" style={{ fontWeight: 700 }}>{telemetry.billingEnergy === null ? '—' : `${telemetry.billingEnergy.toFixed(3)} kWh`}</div>
+            </div>
+          </div>
+          <div style={{ marginTop: '12px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+            {telemetry.monthlyArchivedAt === null
+              ? 'The device has not reported an archive timestamp.'
+              : `Archived ${new Date(telemetry.monthlyArchivedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`}
+          </div>
+        </div>
       </div>
     </div>
   );
