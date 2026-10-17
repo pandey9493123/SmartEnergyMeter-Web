@@ -35,4 +35,26 @@ export interface MeterLive {
   thrVoltMax?: number;
   thrVoltMin?: number;
   thrCurrMax?: number;
+
+  /**
+   * Firmware integrity signals. These are deliberately normalized by the
+   * live telemetry mapper so older firmware simply reports an inactive state.
+   */
+  anomalyActive: boolean;
+  anomalyReason: string | null;
+  tamperActive: boolean;
+  tamperReason: string | null;
+
+  /**
+   * The latest monthly billing cycle snapshot written by firmware. A null
+   * value means this firmware has not published that part of the schema yet.
+   */
+  billingMonth: string | null;
+  billingStartEnergy: number | null;
+  billingEnergy: number | null;
+  billingConsumedEnergy?: number | null;
+  billingBill: number | null;
+  billingTariff?: number | null;
+  billingCycleStartAt?: number | null;
+  monthlyArchivedAt: number | null;
 }
