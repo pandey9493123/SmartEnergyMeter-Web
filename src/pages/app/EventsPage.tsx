@@ -10,6 +10,10 @@ const TYPE_STYLE: Record<string, { label: string; color: string }> = {
   RELAY_CLOSED: { label: 'RELAY CLOSED', color: 'var(--normal)' },
   BUDGET_EXCEEDED: { label: 'BUDGET EXCEEDED', color: 'var(--warning)' },
   BUDGET_OK: { label: 'BUDGET OK', color: 'var(--normal)' },
+  ANOMALY_ACTIVE: { label: 'ANOMALY ACTIVE', color: 'var(--warning)' },
+  ANOMALY_CLEARED: { label: 'ANOMALY CLEARED', color: 'var(--normal)' },
+  TAMPER_ACTIVE: { label: 'TAMPER ACTIVE', color: 'var(--fault)' },
+  TAMPER_CLEARED: { label: 'TAMPER CLEARED', color: 'var(--normal)' },
   DEVICE_ONLINE: { label: 'DEVICE ONLINE', color: 'var(--normal)' },
   DEVICE_OFFLINE: { label: 'DEVICE OFFLINE', color: 'var(--fault)' },
 };
@@ -93,7 +97,7 @@ export default function EventsPage() {
               {events.length === 0 ? (
                 <tr>
                   <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No events recorded yet. Faults, relay actions and budget alerts will appear here automatically.
+                    No events recorded yet. Faults, relay actions, budget alerts, anomaly signals, tamper signals, and online/offline transitions will appear here automatically.
                   </td>
                 </tr>
               ) : (
