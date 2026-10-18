@@ -24,6 +24,18 @@ function toBool(v: unknown): boolean {
   return Boolean(v);
 }
 
+function toOptionalNumber(v: unknown): number | null {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toNullableText(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const text = String(v).trim();
+  return text.length > 0 ? text : null;
+}
+
 /** Firmware may write any of these timestamp keys (epoch ms or seconds). */
 function extractDeviceTimestamp(raw: Record<string, unknown>): number | null {
   const candidates = [
@@ -41,6 +53,13 @@ function extractDeviceTimestamp(raw: Record<string, unknown>): number | null {
     return Math.floor(n);
   }
   return null;
+}
+
+/** Firmware may report a monthly archive timestamp in seconds or ms. */
+function extractTimestampValue(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n < 1e12 ? Math.floor(n * 1000) : Math.floor(n);
 }
 
 function mapRaw(
@@ -76,6 +95,18 @@ function mapRaw(
     thrVoltMax: Number(raw.thrVoltMax) > 0 ? Number(raw.thrVoltMax) : 265,
     thrVoltMin: Number(raw.thrVoltMin) > 0 ? Number(raw.thrVoltMin) : 170,
     thrCurrMax: Number(raw.thrCurrMax) > 0 ? Number(raw.thrCurrMax) : 30,
+    anomalyActive: toBool(raw.anomalyActive),
+    anomalyReason: toNullableText(raw.anomalyReason),
+    tamperActive: toBool(raw.tamperActive),
+    tamperReason: toNullableText(raw.tamperReason),
+    billingMonth: toNullableText(raw.billingMonth),
+    billingStartEnergy: toOptionalNumber(raw.billingStartEnergy),
+    billingEnergy: toOptionalNumber(raw.billingEnergy),
+    billingConsumedEnergy: toOptionalNumber(raw.billingConsumedEnergy),
+    billingBill: toOptionalNumber(raw.billingBill),
+    billingTariff: toOptionalNumber(raw.billingTariff),
+    billingCycleStartAt: extractTimestampValue(raw.billingCycleStartAt),
+    monthlyArchivedAt: extractTimestampValue(raw.monthlyArchivedAt),
   };
 }
 
