@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useHistory } from '../../hooks/useHistory';
 import { useDevice } from '../../hooks/useDevice';
 import { fetchEventsOnce } from '../../firebase/events';
+import { fetchBillingArchives } from '../../firebase/billing';
+import type { BillingArchive } from '../../firebase/billing';
+import { useLiveTelemetry } from '../../hooks/useLiveTelemetry';
 
 function download(filename: string, text: string, mime: string) {
   const blob = new Blob([text], { type: `${mime};charset=utf-8;` });
@@ -30,6 +33,33 @@ function formatDuration(ms: number): string {
   return `${hours}h ${mins % 60}m`;
 }
 
+function formatBillingMonth(month: string): string {
+  const normalized = month.trim();
+  const match = /^(\d{4})[-/]?(\d{2})$/.exec(normalized);
+  if (!match) return normalized || '—';
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+  return Number.isNaN(date.getTime())
+    ? normalized
+    : date.toLocaleDateString([], { month: 'long', year: 'numeric' });
+}
+
+function formatEnergy(value: number | null): string {
+  return value === null ? '—' : `${value.toFixed(3)} kWh`;
+}
+
+function formatBill(value: number | null): string {
+  return value === null ? '—' : `₹${value.toFixed(2)}`;
+}
+
+function formatArchiveTime(value: number | null): string {
+  return value === null
+    ? '—'
+    : new Date(value).toLocaleString([], {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+}
+
 const card: React.CSSProperties = {
   backgroundColor: 'var(--surface-primary)',
   padding: '24px',
@@ -51,14 +81,66 @@ const ghostBtn: React.CSSProperties = {
 export default function ReportsPage() {
   const { samples, recordingSince, clear } = useHistory();
   const { deviceId } = useDevice();
+  const { telemetry } = useLiveTelemetry();
   const [exportingEvents, setExportingEvents] = useState(false);
   const [message, setMessage] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  const [billingArchives, setBillingArchives] = useState<BillingArchive[]>([]);
+  const [billingLoading, setBillingLoading] = useState(true);
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [billingDevice, setBillingDevice] = useState(deviceId);
 
+  // Keep the displayed recorder duration current without calling Date.now()
+  // during render (React treats that as an impure render-time read).
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  if (billingDevice !== deviceId) {
+    setBillingDevice(deviceId);
+    setBillingArchives([]);
+    setBillingError(null);
+    setBillingLoading(true);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchBillingArchives(deviceId)
+      .then((archives) => {
+        window.setTimeout(() => {
+          if (cancelled) return;
+          setBillingArchives(archives);
+          setBillingLoading(false);
+        }, 0);
+      })
+      .catch(() => {
+        window.setTimeout(() => {
+          if (cancelled) return;
+          setBillingError('Monthly billing archive is unavailable.');
+          setBillingLoading(false);
+        }, 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [deviceId]);
+
+  const liveBilling = telemetry && (
+    telemetry.billingMonth !== null ||
+    telemetry.billingStartEnergy !== null ||
+    telemetry.billingEnergy !== null ||
+    telemetry.billingBill !== null ||
+    telemetry.monthlyArchivedAt !== null
+  )
+    ? {
+        month: telemetry.billingMonth ?? 'Current cycle',
+        startEnergy: telemetry.billingStartEnergy,
+        energy: telemetry.billingEnergy,
+        bill: telemetry.billingBill,
+        archivedAt: telemetry.monthlyArchivedAt,
+      }
+    : null;
 
   const handleExportHistory = () => {
     if (samples.length === 0) return;
@@ -144,6 +226,74 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      <section style={card} aria-labelledby="billing-archive-heading">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h3 id="billing-archive-heading" style={{ marginBottom: '4px' }}>Monthly Billing Archive</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Archived billing-cycle snapshots from the firmware at <span className="mono">Billing/&#123;month&#125;</span>.
+            </p>
+          </div>
+          <span className="mono" style={{ color: billingArchives.length > 0 || liveBilling ? 'var(--normal)' : 'var(--text-muted)', fontSize: '0.75rem' }}>
+            {billingLoading ? 'READING...' : billingArchives.length > 0 || liveBilling ? 'ARCHIVE DATA FOUND' : 'NO ARCHIVE DATA'}
+          </span>
+        </div>
+
+        {billingError && (
+          <div style={{ marginTop: '16px', padding: '12px', borderRadius: '4px', backgroundColor: 'rgba(245,158,11,0.1)', border: '1px solid var(--warning)', color: 'var(--warning)', fontSize: '0.85rem' }}>
+            {billingError} The live cycle fields are still shown when the device publishes them.
+          </div>
+        )}
+
+        {!billingLoading && !billingError && billingArchives.length === 0 && !liveBilling && (
+          <div style={{ marginTop: '16px', padding: '24px', textAlign: 'center', border: '1px dashed var(--border-color)', borderRadius: '4px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            No monthly archive has been published for this device yet.
+          </div>
+        )}
+
+        {liveBilling && (
+          <div style={{ marginTop: '16px', padding: '14px', border: '1px solid var(--action)', borderRadius: '4px', backgroundColor: 'rgba(59,130,246,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              <strong style={{ color: 'var(--action)' }}>Latest firmware snapshot · {formatBillingMonth(liveBilling.month)}</strong>
+              <span className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>LIVE TELEMETRY</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', fontSize: '0.85rem' }}>
+              <span>Start: <strong className="mono">{formatEnergy(liveBilling.startEnergy)}</strong></span>
+              <span>End: <strong className="mono">{formatEnergy(liveBilling.energy)}</strong></span>
+              <span>Bill: <strong className="mono">{formatBill(liveBilling.bill)}</strong></span>
+              <span>Archived: <strong>{formatArchiveTime(liveBilling.archivedAt)}</strong></span>
+            </div>
+          </div>
+        )}
+
+        {billingArchives.length > 0 && (
+          <div style={{ overflowX: 'auto', marginTop: '16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '620px', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', letterSpacing: '0.5px', borderBottom: '1px solid var(--border-color)' }}>
+                <tr>
+                  <th style={{ padding: '10px 8px' }}>MONTH</th>
+                  <th style={{ padding: '10px 8px' }}>START ENERGY</th>
+                  <th style={{ padding: '10px 8px' }}>ARCHIVED ENERGY</th>
+                  <th style={{ padding: '10px 8px' }}>BILL</th>
+                  <th style={{ padding: '10px 8px' }}>ARCHIVED AT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {billingArchives.map((archive) => (
+                  <tr key={`${archive.month}-${archive.archivedAt ?? 'unknown'}`} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '10px 8px', fontWeight: 700 }}>{formatBillingMonth(archive.month)}</td>
+                    <td className="mono" style={{ padding: '10px 8px' }}>{formatEnergy(archive.startEnergy)}</td>
+                    <td className="mono" style={{ padding: '10px 8px' }}>{formatEnergy(archive.energy)}</td>
+                    <td className="mono" style={{ padding: '10px 8px', color: 'var(--warning)' }}>{formatBill(archive.bill)}</td>
+                    <td style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>{formatArchiveTime(archive.archivedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
         <div style={card}>
