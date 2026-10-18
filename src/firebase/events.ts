@@ -8,6 +8,10 @@ export type EventType =
   | 'RELAY_CLOSED'
   | 'BUDGET_EXCEEDED'
   | 'BUDGET_OK'
+  | 'ANOMALY_ACTIVE'
+  | 'ANOMALY_CLEARED'
+  | 'TAMPER_ACTIVE'
+  | 'TAMPER_CLEARED'
   | 'DEVICE_ONLINE'
   | 'DEVICE_OFFLINE';
 
