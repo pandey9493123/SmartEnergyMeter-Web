@@ -18,6 +18,18 @@ const defaultSimData: MeterLive = {
   faultActive: false,
   lastFault: null,
   receivedAt: Date.now(),
+  anomalyActive: false,
+  anomalyReason: null,
+  tamperActive: false,
+  tamperReason: null,
+  billingMonth: null,
+  billingStartEnergy: null,
+  billingEnergy: null,
+  billingConsumedEnergy: null,
+  billingBill: null,
+  billingTariff: null,
+  billingCycleStartAt: null,
+  monthlyArchivedAt: null,
 };
 
 export function SimulationProvider({
@@ -27,7 +39,6 @@ export function SimulationProvider({
 }) {
   const [isSimulating, setIsSimulating] = useState(false);
   const [simData, setSimData] = useState<MeterLive>(defaultSimData);
-
   useEffect(() => {
     if (!isSimulating) {
       return;
