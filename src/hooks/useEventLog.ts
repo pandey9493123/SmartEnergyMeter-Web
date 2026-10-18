@@ -8,6 +8,10 @@ interface WatchedState {
   faultActive: boolean;
   relayState: boolean;
   budgetExceeded: boolean;
+  anomalyActive: boolean;
+  anomalyReason: string | null;
+  tamperActive: boolean;
+  tamperReason: string | null;
   isOnline: boolean;
   lastFault: string | null;
 }
@@ -29,6 +33,10 @@ export function useEventLog(): void {
       faultActive: telemetry.faultActive,
       relayState: telemetry.relayState,
       budgetExceeded: telemetry.budgetExceeded,
+      anomalyActive: telemetry.anomalyActive,
+      anomalyReason: telemetry.anomalyReason,
+      tamperActive: telemetry.tamperActive,
+      tamperReason: telemetry.tamperReason,
       isOnline,
       lastFault: telemetry.lastFault,
     };
@@ -63,6 +71,18 @@ export function useEventLog(): void {
     }
     if (prev.state.budgetExceeded && !curr.budgetExceeded) {
       fire('BUDGET_OK', 'Bill back under budget.');
+    }
+    if (!prev.state.anomalyActive && curr.anomalyActive) {
+      fire('ANOMALY_ACTIVE', curr.anomalyReason || 'Abnormal consumption or sensor signal detected.');
+    }
+    if (prev.state.anomalyActive && !curr.anomalyActive) {
+      fire('ANOMALY_CLEARED', 'Abnormal consumption or sensor signal cleared.');
+    }
+    if (!prev.state.tamperActive && curr.tamperActive) {
+      fire('TAMPER_ACTIVE', curr.tamperReason || 'Tamper signal detected by the device.');
+    }
+    if (prev.state.tamperActive && !curr.tamperActive) {
+      fire('TAMPER_CLEARED', 'Tamper signal cleared.');
     }
     if (!prev.state.isOnline && curr.isOnline) {
       fire('DEVICE_ONLINE', `${deviceId} came online.`);
