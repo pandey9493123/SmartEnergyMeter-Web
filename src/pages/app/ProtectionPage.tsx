@@ -1,0 +1,143 @@
+import { useRef, useState } from 'react';
+import { useLiveTelemetry } from '../../hooks/useLiveTelemetry';
+import { useDevice } from '../../hooks/useDevice';
+import { useAuth } from '../../hooks/useAuth';
+import { sendFaultReset, sendThresholdsCommand } from '../../firebase/commands';
+
+type Result = { ok: boolean; text: string } | null;
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '10px', backgroundColor: 'var(--surface-control)',
+  border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px',
+};
+
+export default function ProtectionPage() {
+  const { telemetry, loading } = useLiveTelemetry();
+  const { deviceId } = useDevice();
+  const { currentUser } = useAuth();
+  const [resetting, setResetting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<Result>(null);
+  const vmaxRef = useRef<HTMLInputElement>(null);
+  const vminRef = useRef<HTMLInputElement>(null);
+  const cmaxRef = useRef<HTMLInputElement>(null);
+
+  if (loading || !telemetry) return <div style={{ padding: '32px' }}>Loading...</div>;
+
+  const handleReset = async () => {
+    setResetting(true);
+    setResult(null);
+    try {
+      const ack = await sendFaultReset(deviceId, currentUser?.uid);
+      if (ack.status === 'done') {
+        setResult({ ok: true, text: ack.note || 'Fault cleared. Load re-energized.' });
+      } else {
+        setResult({ ok: false, text: `Reset ${ack.status}: ${ack.note || 'device refused'}.` });
+      }
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof Error ? err.message : 'Reset failed.' });
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleSaveThresholds = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const vmax = Number(vmaxRef.current?.value);
+    const vmin = Number(vminRef.current?.value);
+    const cmax = Number(cmaxRef.current?.value);
+    if (!(vmax >= 200 && vmax <= 300)) { setResult({ ok: false, text: 'Max voltage must be 200–300 V.' }); return; }
+    if (!(vmin >= 100 && vmin <= 220)) { setResult({ ok: false, text: 'Min voltage must be 100–220 V.' }); return; }
+    if (!(vmax > vmin)) { setResult({ ok: false, text: 'Max voltage must exceed min voltage.' }); return; }
+    if (!(cmax >= 1 && cmax <= 100)) { setResult({ ok: false, text: 'Max current must be 1–100 A.' }); return; }
+    setSaving(true);
+    setResult(null);
+    try {
+      const ack = await sendThresholdsCommand(deviceId, vmax, vmin, cmax, currentUser?.uid);
+      if (ack.status === 'done') {
+        setResult({ ok: true, text: `Thresholds saved on ${deviceId}: ${vmax}V / ${vmin}V / ${cmax}A.` });
+      } else {
+        setResult({ ok: false, text: `Device refused: ${ack.note || 'invalid values'}.` });
+      }
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof Error ? err.message : 'Save failed.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isFaulted = telemetry.faultActive;
+
+  return (
+    <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '4px' }}>Hardware Protection</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Local ESP32 safety thresholds and fault diagnostics for <span className="mono">{deviceId}</span>.</p>
+      </div>
+
+      {/* Active Fault Status */}
+      <div style={{
+        backgroundColor: isFaulted ? 'rgba(150, 59, 52, 0.1)' : 'rgba(57, 116, 84, 0.1)',
+        border: `1px solid ${isFaulted ? 'var(--fault)' : 'var(--normal)'}`,
+        borderRadius: 'var(--border-radius)',
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <h2 style={{ fontSize: '1.1rem', color: isFaulted ? 'var(--fault)' : 'var(--normal)' }}>
+          {isFaulted ? 'FAULT LATCHED: PHYSICAL RELAY OPEN' : 'SYSTEM SAFE: NO FAULTS DETECTED'}
+        </h2>
+
+        {isFaulted && (
+          <>
+            <p className="mono" style={{ color: 'var(--text-primary)' }}>REASON: {telemetry.lastFault}</p>
+            <div style={{ padding: '16px', backgroundColor: 'var(--surface-recessed)', borderLeft: '4px solid var(--warning)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              WARNING: Resetting a fault while hazardous conditions persist may cause immediate re-tripping or hardware damage. Verify electrical safety before proceeding.
+            </div>
+            <button onClick={handleReset} disabled={resetting} style={{ backgroundColor: 'var(--fault)', color: '#fff', padding: '12px 24px', borderRadius: '4px', fontWeight: 700, width: 'fit-content', opacity: resetting ? 0.7 : 1 }}>
+              {resetting ? 'WAITING FOR DEVICE...' : 'REMOTE FAULT RESET'}
+            </button>
+          </>
+        )}
+
+        {result && (
+          <div style={{ padding: '12px', fontSize: '0.85rem', borderRadius: '4px', backgroundColor: result.ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${result.ok ? 'var(--normal)' : 'var(--fault)'}`, color: result.ok ? 'var(--normal)' : 'var(--fault)' }}>
+            {result.text}
+          </div>
+        )}
+      </div>
+
+      {/* Threshold Configuration */}
+      <div style={{ backgroundColor: 'var(--surface-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius)', padding: '24px' }}>
+        <h3 style={{ fontSize: '1rem', marginBottom: '8px', color: 'var(--text-primary)' }}>ESP32 Local Protection Thresholds</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+          Live values from {deviceId}. Saved to ESP32 memory — they survive reboots.
+        </p>
+
+        <form onSubmit={handleSaveThresholds}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Max Voltage (200–300 V)</label>
+              <input ref={vmaxRef} type="number" step="1" defaultValue={telemetry.thrVoltMax ?? 265} className="mono" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Min Voltage (100–220 V)</label>
+              <input ref={vminRef} type="number" step="1" defaultValue={telemetry.thrVoltMin ?? 170} className="mono" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Max Current (1–100 A)</label>
+              <input ref={cmaxRef} type="number" step="1" defaultValue={telemetry.thrCurrMax ?? 30} className="mono" style={inputStyle} />
+            </div>
+          </div>
+          <button type="submit" disabled={saving} style={{ backgroundColor: 'var(--action)', color: '#fff', padding: '12px 24px', borderRadius: '4px', fontWeight: 700, marginTop: '16px', opacity: saving ? 0.7 : 1 }}>
+            {saving ? 'WAITING FOR DEVICE...' : 'SAVE THRESHOLDS TO DEVICE'}
+          </button>
+        </form>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '16px' }}>
+          * Widening thresholds reduces protection. The ESP32 rejects unsafe values automatically.
+        </p>
+      </div>
+    </div>
+  );
+}

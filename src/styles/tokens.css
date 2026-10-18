@@ -1,0 +1,51 @@
+:root {
+  /* LIGHT MODE (Warm Mineral Gray) */
+  --surface-page: #e9e7e0;
+  --surface-primary: #f2f0e9;
+  --surface-secondary: #e2dfd5;
+  --surface-recessed: #d8d4c9;
+  --surface-control: #ece9e0;
+  
+  --text-primary: #1a1f1e;
+  --text-secondary: #4a5452;
+  --text-muted: #737b79;
+  
+  --action: #315f86;
+  
+  --normal: #397454;
+  --warning: #b07d12;
+  --fault: #b3392f;
+
+  --border-color: #d1cebc;
+  --border-radius: 6px;
+  
+  --neon-glow-action: 0 0 0px transparent;
+  --neon-glow-normal: 0 0 0px transparent;
+  --neon-glow-fault: 0 0 0px transparent;
+}
+
+/* DARK MODE (Premium Midnight Navy Carbon) */
+[data-theme='dark'] {
+  --surface-page: #070b14;      /* Deep midnight background */
+  --surface-primary: #0d1322;   /* Slightly elevated panel */
+  --surface-secondary: #131b2e; /* Highlight surfaces */
+  --surface-recessed: #03050a;  /* Deep inset screens */
+  --surface-control: #1a243d;   /* Buttons and inputs */
+  
+  --text-primary: #e6edf5;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  
+  --action: #3b82f6;            /* Bright tech blue */
+  
+  --normal: #10b981;            /* Bright LED green */
+  --warning: #f59e0b;           /* Amber */
+  --fault: #ef4444;             /* Alert red */
+
+  --border-color: #1e293b;
+  
+  /* Subtle, premium neon glows for active elements */
+  --neon-glow-action: 0 0 12px rgba(59, 130, 246, 0.4);
+  --neon-glow-normal: 0 0 12px rgba(16, 185, 129, 0.4);
+  --neon-glow-fault: 0 0 15px rgba(239, 68, 68, 0.5);
+}
