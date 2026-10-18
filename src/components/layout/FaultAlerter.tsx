@@ -4,7 +4,7 @@ import { useSimulation } from '../../hooks/useSimulation';
 import { useNotifications } from '../../hooks/useNotifications';
 
 export default function FaultAlerter() {
-  const { telemetry, deviceId } = useLiveTelemetry();
+  const { telemetry, deviceId, isOnline } = useLiveTelemetry();
   const { isSimulating } = useSimulation();
   const { notify } = useNotifications();
   const prevRef = useRef<{ fault: boolean; budget: boolean; online: boolean } | null>(null);
@@ -15,7 +15,7 @@ export default function FaultAlerter() {
 
     const fault = telemetry.faultActive;
     const budget = telemetry.budgetExceeded;
-    const online = telemetry.isOnline;
+    const online = isOnline;
     const faultName = telemetry.lastFault && telemetry.lastFault !== 'NONE' ? telemetry.lastFault : 'FAULT';
     const source = isSimulating ? 'simulation' : 'live';
 
@@ -51,7 +51,7 @@ export default function FaultAlerter() {
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [telemetry, deviceId, isSimulating, notify]);
+  }, [telemetry, deviceId, isOnline, isSimulating, notify]);
 
   return null;
 }

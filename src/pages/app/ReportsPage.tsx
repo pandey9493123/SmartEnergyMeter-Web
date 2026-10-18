@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useHistory } from '../../hooks/useHistory';
 import { useDevice } from '../../hooks/useDevice';
 import { fetchEventsOnce } from '../../firebase/events';
@@ -53,6 +53,12 @@ export default function ReportsPage() {
   const { deviceId } = useDevice();
   const [exportingEvents, setExportingEvents] = useState(false);
   const [message, setMessage] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const handleExportHistory = () => {
     if (samples.length === 0) return;
@@ -125,7 +131,7 @@ export default function ReportsPage() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               {samples.length === 0
                 ? 'Waiting for telemetry... samples record automatically every ~5 seconds while the app is open.'
-                : `${samples.length} sample${samples.length === 1 ? '' : 's'} recorded since ${recordingSince ? new Date(recordingSince).toLocaleTimeString([], { hour12: false }) : '—'} (${recordingSince ? formatDuration(Date.now() - recordingSince) : '—'}).`}
+                : `${samples.length} sample${samples.length === 1 ? '' : 's'} recorded since ${recordingSince ? new Date(recordingSince).toLocaleTimeString([], { hour12: false }) : '—'} (${recordingSince ? formatDuration(now - recordingSince) : '—'}).`}
             </p>
           </div>
           {samples.length > 0 && (
